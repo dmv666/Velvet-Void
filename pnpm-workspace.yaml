@@ -2,3 +2,7 @@ packages:
   - packages/*
 onlyBuiltDependencies:
   - esbuild
+overrides:
+  # GHSA-67mh-4wv8-2f99: drizzle-kit arrastra un esbuild antiguo vía @esbuild-kit. Solo se usa en desarrollo,
+  # pero forzamos la versión parcheada para mantener `pnpm audit` limpio.
+  "esbuild@<0.25.0": "0.25.10"

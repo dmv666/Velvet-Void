@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
-/** Token de sesión: 32 bytes del CSPRNG del sistema. Nunca Math.random(). */
+/** Token de sesión: 32 bytes del CSPRNG del sistema (nunca el PRNG de Math). */
 export const newToken = (): string => randomBytes(32).toString('base64url');
 
 export const sha256Hex = (data: string | Buffer): string => createHash('sha256').update(data).digest('hex');

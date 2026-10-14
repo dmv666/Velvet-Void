@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
 
 /**
@@ -5,7 +6,9 @@ import { defineConfig, devices } from '@playwright/test';
  * que reenvía /api al servidor real. Requiere Postgres con las migraciones aplicadas.
  */
 const CLIENT = 'http://localhost:4173';
-const executablePath = process.env.PW_CHROMIUM ?? '/opt/pw-browsers/chromium';
+// Chromium preinstalado si existe (contenedores de desarrollo); si no, el que instala Playwright (CI).
+const preinstalled = process.env.PW_CHROMIUM ?? '/opt/pw-browsers/chromium';
+const launchOptions = existsSync(preinstalled) ? { executablePath: preinstalled } : {};
 
 export default defineConfig({
   testDir: './e2e',
@@ -16,11 +19,11 @@ export default defineConfig({
   use: {
     baseURL: CLIENT,
     trace: 'retain-on-failure',
-    launchOptions: { executablePath },
+    launchOptions,
   },
   projects: [
-    { name: 'mobile', use: { ...devices['Pixel 7'], launchOptions: { executablePath } } },
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], launchOptions: { executablePath } } },
+    { name: 'mobile', use: { ...devices['Pixel 7'], launchOptions } },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'], launchOptions } },
   ],
   webServer: [
     {
