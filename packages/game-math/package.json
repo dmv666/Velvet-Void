@@ -1,0 +1,19 @@
+{
+  "name": "@velvet/game-math",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "rtp:exact": "tsx scripts/exact-rtp.ts",
+    "rtp:sim": "tsx scripts/simulate.ts"
+  },
+  "dependencies": {
+    "@noble/hashes": "2.2.0"
+  },
+  "devDependencies": {
+    "tsx": "4.20.6"
+  }
+}

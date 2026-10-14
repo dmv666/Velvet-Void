@@ -1,0 +1,45 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`spin > el resultado de una ronda es una función pura de las semillas (vector dorado) 1`] = `
+{
+  "grid": [
+    [
+      "ROSE",
+      "CUP",
+      "KEY",
+    ],
+    [
+      "HOURGLASS",
+      "CUP",
+      "KEY",
+    ],
+    [
+      "CUP",
+      "ROSE",
+      "RIFT",
+    ],
+    [
+      "MASK",
+      "RING",
+      "KEY",
+    ],
+    [
+      "ROSE",
+      "RING",
+      "MASK",
+    ],
+  ],
+  "mathVersion": "vv-1.0.0",
+  "rifts": [],
+  "stops": [
+    18,
+    56,
+    52,
+    43,
+    17,
+  ],
+  "totalMultiplier": 0,
+  "wilds": [],
+  "wins": [],
+}
+`;

@@ -1,0 +1,20 @@
+# Solo Postgres para desarrollo local. El servidor y el cliente corren en el host (pnpm dev).
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_dev_only}
+      POSTGRES_DB: velvet_void
+    ports:
+      - "127.0.0.1:5432:5432" # solo loopback: la BD nunca queda expuesta en la red local
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d velvet_void"]
+      interval: 5s
+      retries: 10
+volumes:
+  pgdata:
