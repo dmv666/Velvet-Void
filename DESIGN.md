@@ -15,17 +15,18 @@
 |---|---|---|
 | Bajos | Rosa marchita, Llave, Copa, Anillo | Frecuentes, pagan poco |
 | Altos | Reloj de arena, Máscara, Ojo de Vesper | Raros, pagan mucho |
-| Especial | **Grieta** | Solo en rodillos 2–4, máximo 1 por rodillo. Es wild. |
+| Especial | **Grieta** | Solo en rodillos 2–4, máximo 1 por rodillo. Solo se **abre** en la fila central; arriba o abajo queda **sellada** (bloquea la línea). |
 
 **Regla de la Grieta**
 
-1. Cuando una Grieta queda visible, se abre y emite **1, 2 o 3 haces** (pesos `60 / 30 / 10`).
+1. Cuando una Grieta cae en la **fila central**, se abre (es wild) y emite **1, 2 o 3 haces** (pesos `80 / 17 / 3`).
 2. Cada haz sigue un **eje** distinto, elegido sin reemplazo entre `horizontal`, `vertical`, `diagonal ↘` y `diagonal ↗`.
 3. El haz atraviesa la Grieta en ambos sentidos hasta el borde de la cuadrícula. **Toda celda que toca se convierte en wild.**
 4. Si hay varias Grietas, cada una dispara de forma independiente (en orden de rodillo, de izquierda a derecha, para que el RNG se consuma de forma determinista).
 5. Las líneas se evalúan **después** de aplicar los haces: de izquierda a derecha, con al menos 3 coincidencias seguidas y el wild sustituyendo cualquier símbolo.
+6. Una línea entera de wild es **"luz pura"** y paga 20× la apuesta por línea (si pagara como el símbolo más alto, un solo haz horizontal sería el premio máximo).
 
-**Tope de premio:** 2 000× la apuesta total por ronda. El tope acota la cola de la distribución y deja la volatilidad bajo control.
+**Tope de premio:** 2 000× la apuesta total por ronda, como red de seguridad. Con la tabla actual el máximo alcanzable es 192×, así que el tope no se activa (hay un test que lo comprueba) y no distorsiona el RTP.
 
 **Por qué esta mecánica**
 
@@ -34,13 +35,23 @@
 - **El RTP teórico es exacto.** Se recorren todas las combinaciones de paradas (≈ 32⁵ ≈ 33 M) y, solo cuando aparecen Grietas, todas sus configuraciones de haces con su peso. El simulador Monte Carlo se contrasta contra ese número exacto, no contra otra simulación.
 - **v2 opcional:** símbolo **Espejo**, que refleja los haces 90°.
 
-### Matemática (se ajusta en el hito 2)
+### Matemática (`vv-1.0.0`, resultados exactos en `packages/game-math/math-report.json`)
 
-- Los rodillos son **tiras físicas** de unas 32 posiciones; el peso de un símbolo es su número de apariciones en la tira. Una parada es un entero uniforme en `[0, longitud)`.
-- La tabla de pagos va en múltiplos **enteros** de `lineBet`, de modo que todo premio es un entero. **Nunca se usan floats para dinero.** Las cantidades son `bigint` en unidades mínimas de crédito.
-- Objetivo: RTP ≈ 96 %, frecuencia de acierto ≈ 25–30 % y volatilidad media.
-- Se publican RTP, desviación estándar por ronda, frecuencia de acierto, distribución de premios y contribución de cada símbolo y de las Grietas al RTP.
-- `MATH_VERSION` se guarda en cada ronda: si cambia la tabla, las rondas antiguas siguen siendo reproducibles.
+- Los rodillos son **tiras físicas**: 30 posiciones en los rodillos 1 y 5, y 60 en los rodillos 2–4 (con una sola Grieta). El peso de un símbolo es su número de apariciones; una parada es un entero uniforme en `[0, longitud)`.
+- La tabla de pagos va en múltiplos **enteros** de `lineBet`, así que todo premio es un entero. **Nunca se usan floats para dinero.** Las cantidades son `bigint` en unidades mínimas de crédito.
+- `MATH_VERSION` se guarda en cada ronda y una huella SHA-256 de la configuración detecta informes de RTP desactualizados.
+
+| Métrica (exacta) | Valor |
+|---|---|
+| RTP | **96,111 %** |
+| Desviación estándar por ronda | 2,48 × apuesta (volatilidad media) |
+| Frecuencia de acierto | 35,8 % |
+| Rondas con Grieta abierta | 4,9 % (aportan el 38 % del RTP) |
+| Premio máximo | 192× apuesta |
+
+**Lo que aprendimos al afinar:** la primera tabla daba un RTP del 529 %. Una ronda con Grieta vale unas 18 veces más que una normal, así que el RTP depende sobre todo de la **frecuencia** de la Grieta, no de los pagos. Para cuadrar el 96 % hubo que hacerla rara (solo se abre en la fila central) y desplazar valor hacia los premios de 3 símbolos del juego base.
+
+**Nota ética (material de aprendizaje):** una Grieta sellada arriba o abajo es una *casi-ganancia*. En el juego real este patrón se usa para inflar la sensación de "casi lo consigo". Aquí la mostramos igualmente, pero **sin trucarla**: su frecuencia sale de las tiras publicadas, no de un sesgo oculto, y la UI explica la regla. Además, todo premio es ≥ 1,3× la apuesta, así que no hay "pérdidas disfrazadas de ganancia".
 
 ---
 

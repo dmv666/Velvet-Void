@@ -1,0 +1,30 @@
+{
+  "name": "velvet-void",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter ./packages/server --filter ./packages/client dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:up": "docker compose up -d db",
+    "db:migrate": "pnpm --filter @velvet/server db:migrate",
+    "audit": "pnpm audit --prod",
+    "e2e": "pnpm --filter @velvet/client build && playwright test",
+    "attack:tamper": "node attacks/client-tampering.mjs",
+    "attack:replay": "k6 run attacks/replay.k6.js",
+    "attack:race": "k6 run attacks/race.k6.js",
+    "rtp:exact": "pnpm --filter @velvet/game-math rtp:exact",
+    "rtp:sim": "pnpm --filter @velvet/game-math rtp:sim"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11",
+    "@playwright/test": "1.63.0"
+  }
+}

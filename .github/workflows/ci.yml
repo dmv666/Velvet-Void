@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: velvet_void
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 10
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Roles y BD de test
+        run: psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -f db/init/01-roles.sql
+      - run: pnpm audit --audit-level low
+      - run: pnpm -r typecheck
+      - run: pnpm -r test
+      - name: Migraciones (BD de desarrollo) para el E2E
+        run: pnpm --filter @velvet/server exec tsx src/db/migrate.ts
+        env:
+          MIGRATION_DATABASE_URL: postgres://velvet_owner:owner_dev_only@127.0.0.1:5432/velvet_void
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm e2e
+        env:
+          CI: "true"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/
