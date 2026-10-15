@@ -103,8 +103,8 @@ export class SlotStage {
   private readonly fx = new Container();
   private readonly lines = new Graphics();
   private readonly wilds = new Container();
-  private readonly backdrop = new Sprite();
   private readonly winText: Text;
+  private readonly dust = new Container();
   private ticker = (t: { deltaMS: number }) => this.tick(t.deltaMS / 1000);
   private spinStart: Promise<void> = Promise.resolve();
   private reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -117,7 +117,8 @@ export class SlotStage {
     private readonly art: ArtSet,
     private readonly events: StageEvents,
   ) {
-    app.stage.addChild(this.backdrop, this.root);
+    app.stage.addChild(this.root);
+    this.root.addChild(this.dust);
     this.root.addChild(this.frame());
     const reelLayer = new Container();
     const mask = new Graphics().rect(X0, Y0, REELS * CELL, ROWS * CELL).fill(0xffffff);
@@ -156,6 +157,7 @@ export class SlotStage {
     this.winText.alpha = 0;
     this.root.addChild(this.winText);
     app.ticker.add(this.ticker);
+    this.spawnDust();
     app.renderer.on('resize', (w: number, h: number) => this.layout(w, h));
     this.layout(app.renderer.width / app.renderer.resolution, app.renderer.height / app.renderer.resolution);
   }
@@ -167,14 +169,13 @@ export class SlotStage {
     const app = new Application();
     await app.init({
       resizeTo: host,
-      background: C.void,
+      // Transparente: el terciopelo del fondo es CSS y continúa detrás de Vesper.
+      backgroundAlpha: 0,
       antialias: true,
       autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
     });
     host.appendChild(app.canvas);
-    // `resizeTo` solo escucha la ventana; el contenedor puede cambiar de tamaño sin que ella cambie.
-
     app.canvas.setAttribute('aria-label', 'Rodillos de Velvet Void');
     app.canvas.setAttribute('role', 'img');
     const stage = new SlotStage(app, buildArt(), events);
@@ -186,24 +187,119 @@ export class SlotStage {
 
   private frame(): Container {
     const g = new Graphics();
-    const pad = 22;
-    g.roundRect(X0 - pad, Y0 - pad, REELS * CELL + pad * 2, ROWS * CELL + pad * 2, 26).fill(C.burgundy);
-    g.roundRect(X0 - pad, Y0 - pad, REELS * CELL + pad * 2, ROWS * CELL + pad * 2, 26).stroke({ width: 3, color: C.gold });
-    g.roundRect(X0 - 6, Y0 - 6, REELS * CELL + 12, ROWS * CELL + 12, 10).stroke({ width: 1.5, color: C.goldDim });
-    // Marcas de fila central: aquí se abren las Grietas.
-    for (const side of [-1, 1]) {
-      const x = side < 0 ? X0 - pad + 6 : X0 + REELS * CELL + pad - 6;
-      g.poly([x, Y0 + CELL * 1.5 - 10, x + side * -10, Y0 + CELL * 1.5, x, Y0 + CELL * 1.5 + 10]).fill(C.goldBright);
+    const pad = 28;
+    const x = X0 - pad;
+    const y = Y0 - pad;
+    const w = REELS * CELL + pad * 2;
+    const h = ROWS * CELL + pad * 2;
+    const ink = 0x1b0812;
+    const bright = 0xffe7a3;
+    const deep = 0x8a5418;
+
+    g.roundRect(x + 4, y + 14, w, h, 30).fill({ color: 0x000000, alpha: 0.5 });
+    g.roundRect(x, y, w, h, 30).fill(C.burgundy);
+    // Bisel: contorno de tinta, oro, filo de luz.
+    g.roundRect(x, y, w, h, 30).stroke({ width: 13, color: ink });
+    g.roundRect(x, y, w, h, 30).stroke({ width: 8, color: C.gold });
+    g.roundRect(x - 2, y - 2, w + 4, h + 4, 32).stroke({ width: 1.5, color: bright, alpha: 0.9 });
+    g.roundRect(x + 4, y + 4, w - 8, h - 8, 26).stroke({ width: 1.5, color: deep });
+    // Perlas a lo largo del marco.
+    for (let px = x + 50; px <= x + w - 50; px += 30) {
+      for (const py of [y + pad / 2 + 1, y + h - pad / 2 - 1]) g.circle(px, py, 3.2).fill(C.goldBright).stroke({ width: 1.5, color: ink });
     }
+    for (let py = y + 50; py <= y + h - 50; py += 30) {
+      for (const px of [x + pad / 2 + 1, x + w - pad / 2 - 1]) g.circle(px, py, 3.2).fill(C.goldBright).stroke({ width: 1.5, color: ink });
+    }
+    // Ventana de los rodillos.
+    g.roundRect(X0 - 7, Y0 - 7, REELS * CELL + 14, ROWS * CELL + 14, 10).stroke({ width: 6, color: ink });
+    g.roundRect(X0 - 7, Y0 - 7, REELS * CELL + 14, ROWS * CELL + 14, 10).stroke({ width: 2.5, color: C.goldBright });
+
+    // Filigrana en las esquinas: volutas espejadas.
+    const scroll = (cx: number, cy: number, sx: number, sy: number) => {
+      const P = (dx: number, dy: number): [number, number] => [cx + dx * sx, cy + dy * sy];
+      const path = (q: Graphics) =>
+        q
+          .moveTo(...P(4, 96))
+          .bezierCurveTo(...P(-2, 50), ...P(10, 12), ...P(48, 6))
+          .bezierCurveTo(...P(70, 2), ...P(84, 14), ...P(76, 28))
+          .bezierCurveTo(...P(70, 38), ...P(56, 34), ...P(58, 24))
+          .moveTo(...P(96, 4))
+          .bezierCurveTo(...P(50, -2), ...P(12, 10), ...P(6, 48))
+          .bezierCurveTo(...P(2, 70), ...P(14, 84), ...P(28, 76))
+          .bezierCurveTo(...P(38, 70), ...P(34, 56), ...P(24, 58));
+      path(g).stroke({ width: 9, color: ink, cap: 'round' });
+      path(g).stroke({ width: 4.5, color: C.goldBright, cap: 'round' });
+      g.poly([...P(-8, -8), ...P(8, -2), ...P(22, 22), ...P(-2, 8)]).fill(C.gold).stroke({ width: 2.5, color: ink });
+      g.circle(...P(16, 16), 5).fill(bright).stroke({ width: 2, color: ink });
+    };
+    scroll(x, y, 1, 1);
+    scroll(x + w, y, -1, 1);
+    scroll(x, y + h, 1, -1);
+    scroll(x + w, y + h, -1, -1);
+
+    // Marcas de la fila central: aquí se abren las Grietas.
+    for (const side of [-1, 1]) {
+      const mx = side < 0 ? x - 4 : x + w + 4;
+      const my = Y0 + CELL * 1.5;
+      g.poly([mx + side * 16, my - 14, mx - side * 6, my, mx + side * 16, my + 14]).fill(C.goldBright).stroke({ width: 3, color: ink });
+    }
+
+    // Blasón superior: medallón con la cerradura al vacío y alas de volutas.
+    const cx = W / 2;
+    const cy = y - 2;
+    for (const side of [-1, 1]) {
+      const wing = (q: Graphics) =>
+        q
+          .moveTo(cx + side * 30, cy + 4)
+          .bezierCurveTo(cx + side * 80, cy - 26, cx + side * 130, cy - 10, cx + side * 150, cy + 6)
+          .bezierCurveTo(cx + side * 132, cy - 2, cx + side * 112, cy + 2, cx + side * 104, cy + 12)
+          .moveTo(cx + side * 34, cy + 16)
+          .bezierCurveTo(cx + side * 70, cy + 4, cx + side * 96, cy + 18, cx + side * 108, cy + 26);
+      wing(g).stroke({ width: 9, color: ink, cap: 'round' });
+      wing(g).stroke({ width: 4.5, color: C.goldBright, cap: 'round' });
+    }
+    g.circle(cx, cy, 40).fill({ color: C.leak, alpha: 0.08 });
+    g.circle(cx, cy, 33).fill(C.gold).stroke({ width: 5, color: ink });
+    g.circle(cx, cy, 27).stroke({ width: 2, color: deep });
+    // arc() continúa desde el último punto: sin moveTo dibujaría una recta desde el trazo anterior.
+    g.moveTo(cx + Math.cos(Math.PI * 1.1) * 29, cy + Math.sin(Math.PI * 1.1) * 29)
+      .arc(cx, cy, 29, Math.PI * 1.1, Math.PI * 1.6)
+      .stroke({ width: 3, color: bright, cap: 'round' });
+    g.circle(cx, cy - 7, 9).fill(C.plumDeep);
+    g.poly([cx - 5, cy - 2, cx + 5, cy - 2, cx + 9, cy + 18, cx - 9, cy + 18]).fill(C.plumDeep);
+    g.circle(cx, cy - 7, 3).fill({ color: C.leak, alpha: 0.9 });
+
+    // Remate inferior.
+    g.poly([cx - 22, y + h, cx, y + h - 12, cx + 22, y + h, cx, y + h + 12]).fill(C.gold).stroke({ width: 3, color: ink });
     return g;
+  }
+
+  /** Polvo dorado flotando: pura ambientación. */
+  private spawnDust(): void {
+    if (this.reducedMotion) return;
+    for (let i = 0; i < 26; i++) {
+      const p = new Sprite(this.art.mote as Texture);
+      p.anchor.set(0.5);
+      this.dust.addChild(p);
+      const loop = (first: boolean) => {
+        // decorativo: Math.random no decide nada del juego
+        p.position.set(Math.random() * W, first ? Math.random() * H : H + 20);
+        p.scale.set(0.08 + Math.random() * 0.22);
+        p.alpha = 0;
+        const life = 9 + Math.random() * 10;
+        gsap.to(p, { y: p.y - 260 - Math.random() * 300, x: p.x + (Math.random() - 0.5) * 120, duration: life, ease: 'none', onComplete: () => loop(false) });
+        gsap.to(p, { alpha: 0.25 + Math.random() * 0.45, duration: life / 2, yoyo: true, repeat: 1, ease: 'sine.inOut' });
+      };
+      loop(true);
+    }
   }
 
   private layout(w: number, h: number): void {
     const scale = Math.min(w / W, h / H);
     this.root.scale.set(scale);
-    this.root.position.set((w - W * scale) / 2, (h - H * scale) / 2);
-    this.backdrop.texture?.destroy(true);
-    this.backdrop.texture = this.art.backdrop(w, h);
+    // En vertical sobra alto: pegamos los rodillos arriba, bajo el busto de Vesper.
+    const portrait = h > (w * H) / W;
+    this.root.position.set((w - W * scale) / 2, portrait ? 0 : (h - H * scale) / 2);
   }
 
   private tick(dt: number): void {
@@ -468,6 +564,7 @@ export class SlotStage {
   destroy(): void {
     this.observer?.disconnect();
     this.app.ticker.remove(this.ticker);
+    for (const p of this.dust.children) gsap.killTweensOf(p);
     this.app.destroy(true, { children: true, texture: true });
   }
 }

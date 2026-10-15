@@ -7,6 +7,9 @@ Slot machine web **educativo**, con créditos 100 % ficticios. Lujo decadente so
 Sirve como portafolio y como material para aprender cómo funciona un casino por dentro y cómo se blinda.
 
 <p align="center">
+  <img src="docs/game-desktop.png" alt="Velvet Void en escritorio, con Vesper junto a los rodillos" />
+</p>
+<p align="center">
   <img src="docs/game-mobile.png" width="300" alt="Rodillos de Velvet Void en móvil" />
   <img src="docs/fair-mobile.png" width="300" alt="Panel de juego justo con el verificador" />
 </p>
@@ -103,4 +106,4 @@ VITE_API_BASE=https://api.tudominio.com pnpm --filter @velvet/client build   # �
 - `packages/client/src/game/SlotStage.ts`: animación que siempre termina en el resultado del servidor.
 
 ## Licencia
-MIT. Arte y sonido generados por código en el propio repositorio.
+MIT. Todo el arte está en el repositorio: los símbolos se dibujan por código, Vesper es un SVG vectorial dibujado a mano y el sonido se sintetiza en el navegador.

@@ -9,7 +9,7 @@ import { FairPanel } from './hud/FairPanel';
 import { HistoryPanel } from './hud/HistoryPanel';
 import { RulesPanel } from './hud/RulesPanel';
 import { Sheet } from './hud/Sheet';
-import { Vesper } from './hud/Vesper';
+import { Vesper, type VesperMood } from './hud/Vesper';
 
 type Panel = 'rules' | 'history' | 'fair' | null;
 
@@ -26,28 +26,35 @@ export function Game({ user, onLogout }: { user: UserDto; onLogout: () => void }
   const [lastWin, setLastWin] = useState<bigint | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
   const [verifyRound, setVerifyRound] = useState<RoundDto | null>(null);
-  const [mood, setMood] = useState<'idle' | 'nod' | 'open'>('idle');
+  const [mood, setMood] = useState<VesperMood>('idle');
+  const moodTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const spinningRef = useRef(false);
   const bet = BET_LEVELS[betIdx]!;
 
   useEffect(() => {
     let disposed = false;
     let created: SlotStage | null = null;
-    const react = (m: 'nod' | 'open') => {
+    // Reacción pasajera de Vesper; al terminar vuelve a mirar los rodillos o a reposar.
+    const react = (m: VesperMood, ms: number) => {
+      clearTimeout(moodTimer.current);
       setMood(m);
-      setTimeout(() => setMood('idle'), 1200);
+      moodTimer.current = setTimeout(() => setMood(spinningRef.current ? 'watch' : 'idle'), ms);
     };
     void SlotStage.create(host.current!, {
       reelStop: (i) => sound.play('stop', i),
       suspense: () => {
         sound.play('rift');
-        react('nod');
+        react('suspense', 1600);
       },
       riftOpen: () => {
         sound.play('rift');
-        react('open');
+        react('rift', 1500);
       },
       beam: () => sound.play('beam'),
-      win: (big) => sound.play(big ? 'bigWin' : 'win'),
+      win: (big) => {
+        sound.play(big ? 'bigWin' : 'win');
+        react(big ? 'bigwin' : 'win', big ? 3200 : 1600);
+      },
     }).then((s) => {
       if (disposed) s.destroy();
       else {
@@ -57,6 +64,7 @@ export function Game({ user, onLogout }: { user: UserDto; onLogout: () => void }
     });
     return () => {
       disposed = true;
+      clearTimeout(moodTimer.current);
       created?.destroy();
       stage.current = null;
     };
@@ -70,6 +78,8 @@ export function Game({ user, onLogout }: { user: UserDto; onLogout: () => void }
       return;
     }
     setSpinning(true);
+    spinningRef.current = true;
+    setMood('watch');
     setToast(null);
     setLastWin(null);
     // Mostramos el cobro al instante (presentación); el saldo real llega del servidor.
@@ -88,6 +98,8 @@ export function Game({ user, onLogout }: { user: UserDto; onLogout: () => void }
       if (me) setBalance(BigInt(me.balance));
       setToast({ text: e instanceof ApiError ? e.message : 'error inesperado', error: true });
     } finally {
+      spinningRef.current = false;
+      setMood((m) => (m === 'watch' || m === 'suspense' ? 'idle' : m));
       setSpinning(false);
     }
   }, [balance, bet, spinning, turbo]);
@@ -109,24 +121,24 @@ export function Game({ user, onLogout }: { user: UserDto; onLogout: () => void }
     <div className="app">
       <header className="top">
         <div className="brand">
-          <Vesper mood={mood} />
-          <div>
-            <h1>Velvet Void</h1>
-            <small>{user.username}</small>
-          </div>
+          <h1>Velvet Void</h1>
+          <small>{user.username}</small>
         </div>
-        <div className="balance" aria-live="polite">
+        <div className="plaque balance" aria-live="polite">
           <span>Créditos</span>
           <strong data-testid="balance">{formatCredits(balance)}</strong>
         </div>
       </header>
 
-      <div className="stage" ref={host}>
-        {toast && (
-          <div className={`toast ${toast.error ? 'error' : ''}`} role="status">
-            {toast.text}
-          </div>
-        )}
+      <div className="table">
+        <Vesper mood={mood} />
+        <div className="stage" ref={host}>
+          {toast && (
+            <div className={`toast ${toast.error ? 'error' : ''}`} role="status">
+              {toast.text}
+            </div>
+          )}
+        </div>
       </div>
 
       <div>
@@ -138,7 +150,7 @@ export function Game({ user, onLogout }: { user: UserDto; onLogout: () => void }
             <button className="round-btn" aria-label="Bajar apuesta" disabled={spinning || betIdx === 0} onClick={() => setBetIdx(betIdx - 1)}>
               −
             </button>
-            <div className="value">
+            <div className="plaque value">
               <span>Apuesta</span>
               <strong data-testid="bet">{formatCredits(bet)}</strong>
             </div>
@@ -152,7 +164,8 @@ export function Game({ user, onLogout }: { user: UserDto; onLogout: () => void }
             </button>
           </div>
           <button className={`spin ${spinning ? 'busy' : ''}`} onClick={() => void spin()} disabled={spinning || !ready} aria-label="Girar" data-testid="spin">
-            {spinning ? '···' : 'GIRAR'}
+            <span className="keyhole" aria-hidden="true" />
+            <span className="label">{spinning ? '···' : 'GIRAR'}</span>
           </button>
           <div className="toggles">
             <button className="chip" aria-pressed={turbo} onClick={() => setTurbo(!turbo)}>

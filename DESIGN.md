@@ -71,7 +71,13 @@
 - **Tipografía:** Cormorant Garamond para títulos (serif de lujo) e Inter para cifras y HUD (legibilidad).
 - **Textura:** ruido sutil de terciopelo, viñeta fuerte y polvo dorado flotando muy despacio.
 - **Sin neón:** el brillo viene de una sola fuente, la luz que se filtra, nunca de contornos saturados.
-- **Anfitrión: Vesper.** Crupier sin rostro, traje burdeos y guantes de oro; donde debería estar la cara hay un campo de estrellas. Hace gestos, no habla: inclina la cabeza en una casi-ganancia y abre las manos cuando se abre una Grieta.
+- **Anfitrión: Vesper.** Su cabeza es una moneda de oro de canto estriado y, en lugar de cara, tiene una cerradura que da al vacío. Lleva una chistera con un ojo que parpadea, un cuello dorado en abanico y una levita burdeos con amuletos (un ojo en triángulo, un dado y una media luna). Hace levitar una moneda sobre la palma y se apoya en un bastón con otra cerradura por pomo. No habla, solo gesticula:
+  - mira los rodillos mientras giran;
+  - entorna el ojo y ladea la cabeza cuando hay tensión;
+  - la cerradura estalla en rayos cuando se abre una Grieta;
+  - en un premio grande la cabeza gira como una moneda lanzada y el sombrero sale volando.
+
+  Es un SVG vectorial dibujado a mano (`packages/client/src/art/vesper.svg`) con cada parte en su propia capa. CSS anima esas capas según `data-mood`, sin JavaScript por fotograma. En escritorio aparece de cuerpo entero junto a los rodillos; en móvil asoma el busto por encima.
 - **"Juice" de los rodillos:**
   - Anticipación: retroceso antes de girar.
   - Desenfoque de movimiento durante el giro.

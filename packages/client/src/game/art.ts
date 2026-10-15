@@ -240,8 +240,6 @@ export interface ArtSet {
   wild: Texture;
   /** Fondo de celda (terciopelo). */
   cell: Texture;
-  /** Fondo del escenario con viñeta y grano. */
-  backdrop: (w: number, h: number) => Texture;
   /** Mota de polvo dorado para partículas. */
   mote: Texture;
 }
@@ -288,27 +286,5 @@ export function buildArt(): ArtSet {
     g.arc(0, 0, 10, 0, Math.PI * 2);
     g.fill();
   });
-  const backdrop = (w: number, h: number) => {
-    const el = document.createElement('canvas');
-    el.width = Math.max(2, Math.round(w));
-    el.height = Math.max(2, Math.round(h));
-    const g = el.getContext('2d')!;
-    const gr = g.createRadialGradient(w / 2, h * 0.42, 10, w / 2, h / 2, Math.max(w, h) * 0.75);
-    gr.addColorStop(0, '#2a0f2e');
-    gr.addColorStop(0.55, '#140711');
-    gr.addColorStop(1, '#050307');
-    g.fillStyle = gr;
-    g.fillRect(0, 0, w, h);
-    // Grano de terciopelo: ruido muy sutil.
-    const img = g.getImageData(0, 0, el.width, el.height);
-    for (let i = 0; i < img.data.length; i += 4) {
-      const n = (Math.random() - 0.5) * 10; // decorativo: aquí Math.random está bien, no decide nada
-      img.data[i] = img.data[i]! + n;
-      img.data[i + 1] = img.data[i + 1]! + n * 0.6;
-      img.data[i + 2] = img.data[i + 2]! + n;
-    }
-    g.putImageData(img, 0, 0);
-    return Texture.from(el);
-  };
-  return { symbols, wild, cell, backdrop, mote };
+  return { symbols, wild, cell, mote };
 }
